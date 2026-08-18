@@ -3,68 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dealer POS - Logic Fix</title>
+    <title>Dealer POS Login Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap'); body { font-family: 'Hind Siliguri', sans-serif; }</style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen p-6">
+<body class="bg-slate-50 flex items-center justify-center min-h-screen p-6">
 
-    <div id="auth-box" class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border">
-        <div class="text-center mb-6">
-            <div class="bg-blue-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl mb-4">
-                <i class="fas fa-key"></i>
-            </div>
-            <h2 class="text-2xl font-bold">লগইন করুন</h2>
-            <p id="debug-text" class="text-[10px] text-gray-400 mt-1 italic">সিস্টেম রেডি...</p>
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border text-center">
+        <div class="bg-blue-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl mb-4">
+            <i class="fas fa-lock"></i>
         </div>
+        <h2 class="text-2xl font-bold mb-2">লগইন করুন</h2>
+        <p id="status-text" class="text-xs text-gray-400 mb-6 italic">সিস্টেম প্রস্তুত</p>
 
-        <div id="error-display" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl"></div>
+        <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200"></div>
 
-        <input id="email" type="email" placeholder="ইমেইল" class="w-full p-4 border rounded-xl mb-4 outline-none focus:ring-2 ring-blue-500">
-        <input id="pass" type="password" placeholder="পাসওয়ার্ড" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 ring-blue-500">
+        <input id="email-in" type="email" placeholder="ইমেইল" class="w-full p-4 border rounded-xl mb-4 outline-none focus:ring-2 ring-blue-500 shadow-sm">
+        <input id="pass-in" type="password" placeholder="পাসওয়ার্ড" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 ring-blue-500 shadow-sm">
         
-        <button id="login-btn" onclick="login()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">প্রবেশ করুন</button>
+        <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">প্রবেশ করুন</button>
     </div>
 
     <script>
-        // --- আপনার তথ্য এখানে দিন ---
-        const S_URL = "https://ejworjslsnypfekqoewi.supabase.co";
-        const S_KEY = "sb_publishable_TRkyBw7lUa6-6wyQTBOwqg_7Ln1aM8n"; // <--- আপনার Key-টি বসান
-        // ---------------------------
+        // --- আপনার সুপাবেস তথ্য ---
+        const SB_URL = "https://ejworjslsnypfekqoewi.supabase.co";
+        const SB_KEY = "আপনার_PUBLISHABLE_KEY_এখানে_দিন"; // <--- আপনার কী-টি এখানে দিন
+        
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-        const supabase = window.supabase.createClient(S_URL, S_KEY);
-
-        async function login() {
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('pass').value.trim();
-            const btn = document.getElementById('login-btn');
-            const errBox = document.getElementById('error-display');
-            const debugText = document.getElementById('debug-text');
+        async function handleLogin() {
+            const email = document.getElementById('email-in').value.trim();
+            const pass = document.getElementById('pass-in').value.trim();
+            const btn = document.getElementById('btn-login');
+            const status = document.getElementById('status-text');
+            const errorBox = document.getElementById('error-msg');
 
             if(!email || !pass) return alert("ইমেইল ও পাসওয়ার্ড দিন");
 
+            // বাটন লক করা
             btn.innerText = "চেক করা হচ্ছে...";
             btn.disabled = true;
-            errBox.classList.add('hidden');
+            status.innerText = "ডাটাবেজে তথ্য পাঠানো হচ্ছে...";
+            errorBox.classList.add('hidden');
 
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-                
+                // লগইন রিকোয়েস্ট
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: pass
+                });
+
                 if (error) {
                     throw error;
                 } else {
-                    debugText.innerText = "লগইন সফল! রিডাইরেক্ট হচ্ছে...";
-                    alert("লগইন সফল হয়েছে! স্বাগতম " + data.user.email);
-                    // এখানে সফল হওয়ার পর যা করবেন (যেমন ড্যাশবোর্ডে যাওয়া)
-                    window.location.reload(); 
+                    status.innerText = "লগইন সফল! স্বাগতম।";
+                    alert("লগইন সফল হয়েছে! ড্যাশবোর্ডে নিয়ে যাওয়া হচ্ছে।");
+                    // এখানে সফল হওয়ার পর অন্য পেজে নিয়ে যাবে
+                    window.location.href = "/dashboard.html"; // বা আপনার ড্যাশবোর্ড পেজের নাম
                 }
-            } catch (e) {
-                console.error(e);
-                errBox.classList.remove('hidden');
-                errBox.innerText = "ভুল: " + e.message;
+            } catch (err) {
+                console.error(err);
                 btn.innerText = "প্রবেশ করুন";
                 btn.disabled = false;
+                status.innerText = "লগইন ব্যর্থ!";
+                errorBox.classList.remove('hidden');
+                
+                // এরর অনুযায়ী বাংলায় মেসেজ
+                if(err.message.includes("Invalid login credentials")) {
+                    errorBox.innerText = "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।";
+                } else if(err.message.includes("Email not confirmed")) {
+                    errorBox.innerText = "ইমেইলটি এখনো ভেরিফাই করা হয়নি। সুপাবেস ড্যাশবোর্ড থেকে কনফার্ম করুন।";
+                } else {
+                    errorBox.innerText = "সমস্যা: " + err.message;
+                }
             }
         }
     </script>
