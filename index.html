@@ -33,6 +33,17 @@
         // আপনার সুপাবেস তথ্য (সুপাবেস সেটিংস থেকে কপি করে আনুন)
         const URL = "https://ejworjslsnypfekqoewi.supabase.co";
         const KEY = "sb_publishable_TRkyBw7lUa6-6wyQTBOwqg_7Ln1aM8n"; // <--- এইখানে আসল KEY দিন
+        // এটি অটোমেটিক সব বাড়তি স্পেস বা এরর পরিষ্কার করে নিবে
+const URL = RAW_URL.trim().replace(/\s/g, '');
+const KEY = RAW_KEY.trim().replace(/\s/g, '');
+
+async function init() {
+    // ... বাকি কোড একই থাকবে ...
+    try {
+        const supabase = window.supabase.createClient(URL, KEY);
+        // ...
+    }
+}
 
         async function init() {
             const errorBox = document.getElementById('error-box');
