@@ -4,181 +4,137 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dealer POS System</title>
-    <!-- Tailwind CSS for Premium Look -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Library -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
-        body { font-family: 'Hind Siliguri', sans-serif; background-color: #f3f4f6; }
-        @media print { .no-print { display: none; } .print-only { display: block !important; } }
-        .print-only { display: none; }
+        body { font-family: 'Hind Siliguri', sans-serif; background-color: #f8fafc; }
     </style>
 </head>
 <body>
-    <div id="app" class="max-w-md mx-auto min-h-screen pb-20 relative bg-gray-50 shadow-2xl">
+    <div id="app" class="max-w-md mx-auto min-h-screen pb-24 relative bg-white shadow-xl">
         <!-- Header -->
-        <header class="bg-indigo-700 text-white p-6 rounded-b-[2rem] shadow-lg no-print">
+        <header class="bg-blue-700 text-white p-6 rounded-b-[2.5rem] shadow-lg">
             <h1 class="text-2xl font-bold">ডিলার ম্যানেজমেন্ট</h1>
-            <p class="text-indigo-200 text-sm">আধুনিক সেলস ও স্টক সিস্টেম</p>
+            <p class="text-blue-100 text-sm">প্রিমিয়াম সেলস ও স্টক সিস্টেম</p>
         </header>
 
         <!-- Navigation Tabs -->
-        <div class="flex p-4 gap-2 no-print">
-            <button onclick="switchTab('order')" id="tab-order" class="flex-1 py-3 rounded-2xl bg-indigo-600 text-white font-bold shadow-md">অর্ডার</button>
-            <button onclick="switchTab('list')" id="tab-list" class="flex-1 py-3 rounded-2xl bg-white text-gray-600 border font-bold">লিস্ট</button>
-            <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-3 rounded-2xl bg-white text-gray-600 border font-bold">স্টক</button>
+        <div class="flex p-4 gap-2">
+            <button onclick="switchTab('order')" id="btn-order" class="flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-md">অর্ডার</button>
+            <button onclick="switchTab('list')" id="btn-list" class="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold">লিস্ট</button>
+            <button onclick="switchTab('stock')" id="btn-stock" class="flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold">স্টক</button>
         </div>
 
         <!-- Content Area -->
-        <div id="content" class="p-4 no-print">
-            <!-- Loading Spinner -->
-            <div id="loader" class="text-center py-10">লোডিং হচ্ছে...</div>
+        <div id="main-content" class="px-4 py-2">
+            <div id="loader" class="text-center py-20 text-gray-400">
+                <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+                <p>ডাটা লোড হচ্ছে...</p>
+            </div>
         </div>
 
-        <!-- Floating Cart (Order Page only) -->
-        <div id="cart-footer" class="fixed bottom-0 max-w-md w-full bg-white p-4 border-t shadow-2xl hidden no-print">
-            <div class="flex justify-between items-center mb-3">
-                <span id="cart-count" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">০ আইটেম</span>
-                <span id="cart-total" class="text-xl font-bold text-indigo-700">৳ ০</span>
+        <!-- Footer for Order Confirmation -->
+        <div id="footer" class="fixed bottom-0 max-w-md w-full bg-white p-4 border-t shadow-2xl hidden">
+            <div class="flex justify-between items-end mb-4">
+                <div><p class="text-xs text-gray-400">মোট হিসাব</p><p id="total-price" class="text-2xl font-black text-blue-700">৳ ০</p></div>
+                <button onclick="submitOrder()" class="bg-green-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg active:scale-95 transition">অর্ডার দিন</button>
             </div>
-            <button onclick="submitOrder()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg active:scale-95 transition">অর্ডার কনফার্ম করুন</button>
         </div>
     </div>
 
-    <!-- Print Area -->
-    <div id="print-section" class="print-only p-8 bg-white"></div>
-
     <script>
-        // আপনার সুপাবেস কানেকশন (এগুলো আপনার স্ক্রিনশট থেকে নেওয়া)
-        const SUPABASE_URL = "https://ejworjslsnypfekqoewi.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_TRkyBw7lUa6-6wyQTBOwqg_7Ln1aM8n"; // এখানে আপনার স্ক্রিনশটের Publishable Key-টি বসান
+        // --- আপনার তথ্য এখানে দিন ---
+        const SB_URL = "https://ejworjslsnypfekqoewi.supabase.co";
+        const SB_KEY = "sb_publishable_TRkyBw7lUa6-6wyQTBOwqg_7Ln1aM8n"; // <-- এইখানে আপনার সেই দীর্ঘ চাবিটি বসান
+        // -------------------------
 
-        const supabase = lib.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentTab = 'order';
+        const supabase = window.supabase.createClient(SB_URL, SB_KEY);
         let products = [];
         let cart = [];
-        let shopName = '';
+        let currentTab = 'order';
 
-        async function init() {
-            await fetchProducts();
-            render();
-        }
-
-        async function fetchProducts() {
-            const { data, error } = await supabase.from('products').select('*');
-            if (!error) products = data;
+        async function start() {
+            try {
+                const { data, error } = await supabase.from('products').select('*');
+                if (error) throw error;
+                products = data || [];
+                render();
+            } catch (err) {
+                document.getElementById('main-content').innerHTML = `
+                    <div class="bg-red-50 p-6 rounded-2xl border border-red-200 text-center">
+                        <p class="text-red-600 font-bold">কানেকশন এরর!</p>
+                        <p class="text-xs text-red-400 mt-2">${err.message}</p>
+                        <p class="text-sm mt-4">দয়া করে চেক করুন আপনি SQL Editor-এ টেবিলগুলো তৈরি করেছেন কিনা।</p>
+                    </div>`;
+            }
         }
 
         function switchTab(tab) {
             currentTab = tab;
-            render();
-            // Update Tab UI
             ['order', 'list', 'stock'].forEach(t => {
-                const btn = document.getElementById(`tab-${t}`);
-                if(t === tab) {
-                    btn.classList.replace('bg-white', 'bg-indigo-600');
-                    btn.classList.replace('text-gray-600', 'text-white');
-                } else {
-                    btn.classList.replace('bg-indigo-600', 'bg-white');
-                    btn.classList.replace('text-white', 'text-gray-600');
-                }
+                const b = document.getElementById('btn-' + t);
+                b.className = (t === tab) ? "flex-1 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-md" : "flex-1 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold";
             });
+            render();
         }
 
         function addToCart(pId) {
-            const product = products.find(p => p.id === pId);
-            const inCart = cart.find(c => c.id === pId);
-            if (inCart) {
-                inCart.qty++;
-            } else {
-                cart.push({ ...product, qty: 1 });
-            }
-            updateCartUI();
-        }
-
-        function updateCartUI() {
-            const footer = document.getElementById('cart-footer');
-            if (cart.length > 0 && currentTab === 'order') {
-                footer.classList.remove('hidden');
-                document.getElementById('cart-count').innerText = cart.length + " আইটেম";
-                const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-                document.getElementById('cart-total').innerText = "৳ " + total;
-            } else {
-                footer.classList.add('hidden');
-            }
+            const p = products.find(x => x.id === pId);
+            const exists = cart.find(x => x.id === pId);
+            if(exists) exists.qty++; else cart.push({...p, qty: 1});
+            render();
         }
 
         async function submitOrder() {
-            shopName = prompt("দোকানের নাম লিখুন:");
-            if (!shopName) return;
-
-            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const name = prompt("দোকানের নাম দিন:");
+            if(!name) return;
+            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
             
-            // ১. অর্ডার সেভ
-            const { data: order, error } = await supabase.from('orders').insert([{ shop_name: shopName, total_amount: total }]).select();
+            const { data: order } = await supabase.from('orders').insert([{ shop_name: name, total_amount: total }]).select();
             
-            if (error) return alert("Error: " + error.message);
-
-            // ২. আইটেম সেভ ও স্টক আপডেট
             for (const item of cart) {
                 await supabase.from('order_items').insert([{ order_id: order[0].id, product_name: item.name, quantity: item.qty, price: item.price }]);
                 await supabase.rpc('decrement_stock', { prod_name: item.name, qty: item.qty });
             }
-
-            alert("অর্ডার সফল হয়েছে!");
-            cart = [];
-            switchTab('list');
-            init();
+            alert("অর্ডার সফল!"); cart = []; start();
         }
 
         function render() {
-            const container = document.getElementById('content');
-            document.getElementById('loader').classList.add('hidden');
-            updateCartUI();
+            const container = document.getElementById('main-content');
+            const footer = document.getElementById('footer');
+            footer.classList.add('hidden');
 
             if (currentTab === 'order') {
-                container.innerHTML = `
-                    <div class="grid grid-cols-2 gap-3">
-                        ${products.map(p => `
-                            <div onclick="addToCart('${p.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:ring-2 ring-indigo-500 transition">
-                                <h3 class="font-bold text-gray-800">${p.name}</h3>
-                                <p class="text-indigo-600 font-bold">৳ ${p.price}</p>
-                                <p class="text-xs text-gray-400 mt-1">স্টক: ${p.stock}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            } else if (currentTab === 'list') {
-                container.innerHTML = `<p class="text-center text-gray-500">অর্ডার লিস্ট লোড হচ্ছে...</p>`;
+                if(cart.length > 0) {
+                    footer.classList.remove('hidden');
+                    document.getElementById('total-price').innerText = "৳ " + cart.reduce((s, i) => s + (i.price*i.qty), 0);
+                }
+                container.innerHTML = `<div class="grid grid-cols-2 gap-3">${products.map(p => `
+                    <div onclick="addToCart('${p.id}')" class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:bg-blue-50 transition cursor-pointer">
+                        <h3 class="font-bold text-gray-800">${p.name}</h3>
+                        <p class="text-blue-600 font-bold text-lg">৳${p.price}</p>
+                        <p class="text-[10px] text-gray-400">স্টক: ${p.stock}</p>
+                    </div>`).join('')}</div>`;
+            } 
+            else if (currentTab === 'list') {
+                container.innerHTML = `<p class="text-center py-10 text-gray-400">অর্ডার লোড হচ্ছে...</p>`;
                 supabase.from('orders').select('*').order('created_at', {ascending: false}).then(({data}) => {
                     container.innerHTML = data.map(o => `
-                        <div class="bg-white p-4 rounded-xl shadow-sm mb-3 flex justify-between items-center border-l-4 border-indigo-500">
-                            <div>
-                                <h4 class="font-bold text-gray-800">${o.shop_name}</h4>
-                                <p class="text-xs text-gray-400">${new Date(o.created_at).toLocaleString('bn-BD')}</p>
-                                <p class="text-indigo-600 font-bold">৳ ${o.total_amount}</p>
-                            </div>
-                            <button onclick="window.print()" class="bg-gray-100 px-3 py-2 rounded-lg text-xs font-bold">প্রিন্ট</button>
-                        </div>
-                    `).join('');
+                        <div class="bg-white p-4 rounded-2xl border mb-3 flex justify-between items-center shadow-sm">
+                            <div><h4 class="font-bold">${o.shop_name}</h4><p class="text-blue-600 font-black">৳${o.total_amount}</p></div>
+                            <button onclick="window.print()" class="bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold">প্রিন্ট</button>
+                        </div>`).join('');
                 });
-            } else if (currentTab === 'stock') {
-                container.innerHTML = `
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 border-b"><tr class="text-xs text-gray-500 uppercase"><th class="p-3">পণ্য</th><th class="p-3">স্টক</th></tr></thead>
-                            <tbody>
-                                ${products.map(p => `<tr class="border-b last:border-0"><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-orange-600 font-bold">${p.stock}</td></tr>`).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+            }
+            else {
+                container.innerHTML = `<div class="bg-white rounded-2xl border overflow-hidden"><table class="w-full text-left">
+                    <thead class="bg-gray-50 border-b text-xs font-bold text-gray-500 uppercase"><th class="p-3">পণ্য</th><th class="p-3">স্টক</th></thead>
+                    <tbody>${products.map(p => `<tr class="border-b last:border-0"><td class="p-3 font-bold">${p.name}</td><td class="p-3 text-orange-600 font-black text-right">${p.stock} পিস</td></tr>`).join('')}</tbody></table></div>`;
             }
         }
 
-        init();
+        start();
     </script>
 </body>
 </html>
