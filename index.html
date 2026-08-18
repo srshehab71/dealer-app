@@ -3,82 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dealer POS Login Fix</title>
+    <title>Enterprise POS System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <style>@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap'); body { font-family: 'Hind Siliguri', sans-serif; }</style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; background: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
+        .print-only { display: none; }
+    </style>
 </head>
-<body class="bg-slate-50 flex items-center justify-center min-h-screen p-6">
+<body>
 
-    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border text-center">
-        <div class="bg-blue-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl mb-4">
-            <i class="fas fa-lock"></i>
+    <!-- ১. অথেন্টিকেশন স্ক্রিন (Login/Register/Forgot) -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass max-w-md w-full p-8 rounded-[2.5rem] shadow-2xl">
+            <div class="text-center mb-8">
+                <div class="bg-indigo-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl mb-4 shadow-lg"><i class="fas fa-box-open"></i></div>
+                <h1 id="auth-title" class="text-2xl font-bold text-slate-800">লগইন করুন</h1>
+                <p id="auth-msg" class="text-xs text-slate-400 mt-2">আপনার ডিলার হাউজ অ্যাকাউন্টে প্রবেশ করুন</p>
+            </div>
+
+            <!-- Error/Success Display -->
+            <div id="alert-box" class="hidden mb-4 p-3 rounded-xl text-xs font-bold text-center"></div>
+
+            <div id="auth-fields" class="space-y-4">
+                <input id="email" type="email" placeholder="ইমেইল" class="w-full p-4 rounded-2xl border outline-none focus:ring-2 ring-indigo-500 transition">
+                <div id="pass-container" class="relative">
+                    <input id="password" type="password" placeholder="পাসওয়ার্ড" class="w-full p-4 rounded-2xl border outline-none focus:ring-2 ring-indigo-500 transition">
+                </div>
+            </div>
+
+            <button id="auth-btn" onclick="handleAuth()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold mt-6 shadow-lg active:scale-95 transition">প্রবেশ করুন</button>
+
+            <div class="mt-6 flex justify-between text-xs text-indigo-600 font-bold">
+                <button onclick="toggleAuth('reg')">নতুন অ্যাকাউন্ট</button>
+                <button onclick="toggleAuth('forgot')">পাসওয়ার্ড ভুলে গেছেন?</button>
+                <button id="back-to-login" class="hidden" onclick="toggleAuth('login')">লগইন এ ফিরে যান</button>
+            </div>
         </div>
-        <h2 class="text-2xl font-bold mb-2">লগইন করুন</h2>
-        <p id="status-text" class="text-xs text-gray-400 mb-6 italic">সিস্টেম প্রস্তুত</p>
-
-        <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-xs rounded-xl border border-red-200"></div>
-
-        <input id="email-in" type="email" placeholder="ইমেইল" class="w-full p-4 border rounded-xl mb-4 outline-none focus:ring-2 ring-blue-500 shadow-sm">
-        <input id="pass-in" type="password" placeholder="পাসওয়ার্ড" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 ring-blue-500 shadow-sm">
-        
-        <button id="btn-login" onclick="handleLogin()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">প্রবেশ করুন</button>
     </div>
 
+    <!-- ২. মেইন ড্যাশবোর্ড স্ক্রিন -->
+    <div id="dashboard" class="hidden min-h-screen flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-64 bg-slate-900 text-white flex flex-col no-print">
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-xl font-bold italic text-indigo-400">POS Admin</h2>
+                <p id="user-role-badge" class="text-[10px] uppercase tracking-widest mt-1 opacity-50">SR Panel</p>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <button onclick="showTab('order')" class="nav-btn w-full p-4 text-left rounded-2xl bg-indigo-600"><i class="fas fa-plus-circle mr-3"></i>নতুন অর্ডার</button>
+                <button onclick="showTab('history')" class="nav-btn w-full p-4 text-left rounded-2xl hover:bg-slate-800"><i class="fas fa-history mr-3"></i>অর্ডার হিস্ট্রি</button>
+                <button id="admin-menu" onclick="showTab('admin')" class="hidden nav-btn w-full p-4 text-left rounded-2xl hover:bg-slate-800"><i class="fas fa-warehouse mr-3"></i>স্টক ম্যানেজমেন্ট</button>
+                <button id="dev-menu" onclick="showTab('dev')" class="hidden nav-btn w-full p-4 text-left rounded-2xl hover:bg-slate-800 text-yellow-400"><i class="fas fa-user-shield mr-3"></i>ডেভলপার কন্ট্রোল</button>
+            </nav>
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="logout()" class="w-full p-4 text-left text-red-400 font-bold"><i class="fas fa-sign-out-alt mr-3"></i>লগ আউট</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="content-area" class="flex-1 p-4 md:p-10 no-print">
+            <!-- Tabs content will be injected here -->
+        </main>
+    </div>
+
+    <div id="print-area" class="print-only"></div>
+
     <script>
-        // --- আপনার সুপাবেস তথ্য ---
         const SB_URL = "https://ejworjslsnypfekqoewi.supabase.co";
-        const SB_KEY = "আপনার_PUBLISHABLE_KEY_এখানে_দিন"; // <--- আপনার কী-টি এখানে দিন
-        
+        const SB_KEY = "sb_publishable_TRkyBw7lUa6-6wyQTBOwqg_7Ln1aM8n"; // বসাতে ভুলবেন না
         const supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
-        async function handleLogin() {
-            const email = document.getElementById('email-in').value.trim();
-            const pass = document.getElementById('pass-in').value.trim();
-            const btn = document.getElementById('btn-login');
-            const status = document.getElementById('status-text');
-            const errorBox = document.getElementById('error-msg');
+        let currentUser = null;
+        let userProfile = null;
+        let mode = 'login'; // login, reg, forgot
+        let products = [];
+        let cart = [];
 
-            if(!email || !pass) return alert("ইমেইল ও পাসওয়ার্ড দিন");
+        // --- AUTH LOGIC ---
+        function toggleAuth(m) {
+            mode = m;
+            const title = document.getElementById('auth-title');
+            const btn = document.getElementById('auth-btn');
+            const backBtn = document.getElementById('back-to-login');
+            const passField = document.getElementById('pass-container');
 
-            // বাটন লক করা
-            btn.innerText = "চেক করা হচ্ছে...";
-            btn.disabled = true;
-            status.innerText = "ডাটাবেজে তথ্য পাঠানো হচ্ছে...";
-            errorBox.classList.add('hidden');
+            if(m === 'reg') { title.innerText = "অ্যাকাউন্ট খুলুন"; btn.innerText = "রেজিস্ট্রেশন"; backBtn.classList.remove('hidden'); passField.classList.remove('hidden'); }
+            else if(m === 'forgot') { title.innerText = "পাসওয়ার্ড রিসেট"; btn.innerText = "রিসেট লিঙ্ক পাঠান"; backBtn.classList.remove('hidden'); passField.classList.add('hidden'); }
+            else { title.innerText = "লগইন করুন"; btn.innerText = "প্রবেশ করুন"; backBtn.classList.add('hidden'); passField.classList.remove('hidden'); }
+        }
+
+        async function showAlert(msg, type='red') {
+            const box = document.getElementById('alert-box');
+            box.innerText = msg;
+            box.className = `mb-4 p-3 rounded-xl text-xs font-bold text-center bg-${type}-50 text-${type}-600 border border-${type}-200`;
+            box.classList.remove('hidden');
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            if(!email) return showAlert("ইমেইল দিন!");
 
             try {
-                // লগইন রিকোয়েস্ট
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: pass
-                });
+                if(mode === 'login') {
+                    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+                    if(error) throw error;
+                    checkSession();
+                } else if(mode === 'reg') {
+                    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+                    if(error) throw error;
+                    // প্রোফাইল তৈরি
+                    await supabase.from('profiles').insert([{ id: data.user.id, email: email }]);
+                    showAlert("রেজিস্ট্রেশন সফল! ইমেইল চেক করুন বা লগইন করুন।", "green");
+                } else {
+                    const { error } = await supabase.auth.resetPasswordForEmail(email);
+                    if(error) throw error;
+                    showAlert("পাসওয়ার্ড রিসেট লিঙ্ক ইমেইলে পাঠানো হয়েছে।", "indigo");
+                }
+            } catch (e) { showAlert(e.message); }
+        }
 
-                if (error) {
-                    throw error;
-                } else {
-                    status.innerText = "লগইন সফল! স্বাগতম।";
-                    alert("লগইন সফল হয়েছে! ড্যাশবোর্ডে নিয়ে যাওয়া হচ্ছে।");
-                    // এখানে সফল হওয়ার পর অন্য পেজে নিয়ে যাবে
-                    window.location.href = "/dashboard.html"; // বা আপনার ড্যাশবোর্ড পেজের নাম
-                }
-            } catch (err) {
-                console.error(err);
-                btn.innerText = "প্রবেশ করুন";
-                btn.disabled = false;
-                status.innerText = "লগইন ব্যর্থ!";
-                errorBox.classList.remove('hidden');
-                
-                // এরর অনুযায়ী বাংলায় মেসেজ
-                if(err.message.includes("Invalid login credentials")) {
-                    errorBox.innerText = "ইমেইল বা পাসওয়ার্ড ভুল হয়েছে।";
-                } else if(err.message.includes("Email not confirmed")) {
-                    errorBox.innerText = "ইমেইলটি এখনো ভেরিফাই করা হয়নি। সুপাবেস ড্যাশবোর্ড থেকে কনফার্ম করুন।";
-                } else {
-                    errorBox.innerText = "সমস্যা: " + err.message;
-                }
+        async function checkSession() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if(user) {
+                currentUser = user;
+                const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                userProfile = profile;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                setupPermissions();
+                showTab('order');
             }
         }
+
+        function setupPermissions() {
+            document.getElementById('user-role-badge').innerText = userProfile.role + " Panel";
+            if(userProfile.role === 'Admin' || userProfile.role === 'Dev') document.getElementById('admin-menu').classList.remove('hidden');
+            if(userProfile.role === 'Dev') document.getElementById('dev-menu').classList.remove('hidden');
+        }
+
+        // --- DASHBOARD LOGIC ---
+        async function showTab(tab) {
+            const area = document.getElementById('content-area');
+            area.innerHTML = `<div class="animate-pulse text-gray-400">লোড হচ্ছে...</div>`;
+
+            if(tab === 'order') {
+                const { data } = await supabase.from('products').select('*');
+                products = data || [];
+                area.innerHTML = `
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <h2 class="text-2xl font-bold">নতুন অর্ডার কাটুন</h2>
+                        <input id="shop-name" class="p-4 border rounded-2xl w-full md:w-80 outline-none ring-indigo-500 focus:ring-2" placeholder="দোকানের নাম...">
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        ${products.map(p => `
+                            <div onclick="addCart('${p.id}')" class="bg-white p-5 rounded-[2rem] border shadow-sm active:bg-indigo-50 cursor-pointer">
+                                <h3 class="font-bold text-gray-800">${p.name}</h3>
+                                <p class="text-indigo-600 font-black">৳${p.price}</p>
+                                <p class="text-[10px] text-gray-400">স্টক: ${p.stock}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div id="cart-fixed" class="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 glass p-6 rounded-[2rem] shadow-2xl border border-indigo-100 hidden">
+                        <div class="flex justify-between items-center mb-4"><span class="font-bold">কার্ট লিস্ট</span><button onclick="confirmOrder()" class="bg-green-600 text-white px-6 py-3 rounded-xl font-bold">অর্ডার কনফার্ম (৳<span id="total">0</span>)</button></div>
+                        <div id="cart-items" class="text-xs space-y-1 max-h-32 overflow-y-auto"></div>
+                    </div>
+                `;
+            } else if(tab === 'admin') {
+                area.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-6">স্টক ও পণ্য ম্যানেজমেন্ট</h2>
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm mb-6">
+                        <div class="grid md:grid-cols-3 gap-4 mb-4">
+                            <input id="np-name" class="p-4 border rounded-2xl" placeholder="নাম">
+                            <input id="np-price" type="number" class="p-4 border rounded-2xl" placeholder="দাম">
+                            <input id="np-stock" type="number" class="p-4 border rounded-2xl" placeholder="স্টক">
+                        </div>
+                        <button onclick="saveProduct()" class="bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold">সেভ করুন</button>
+                    </div>
+                `;
+            }
+            // বাকি হিস্ট্রি এবং ডেভ ট্যাব কোড একইভাবে হবে...
+        }
+
+        function addCart(id) {
+            const p = products.find(x => x.id === id);
+            const exists = cart.find(x => x.id === id);
+            if(exists) exists.qty++; else cart.push({...p, qty: 1});
+            updateCart();
+        }
+
+        function updateCart() {
+            const footer = document.getElementById('cart-fixed');
+            const total = cart.reduce((s,i)=>s+(i.price*i.qty),0);
+            footer.classList.toggle('hidden', cart.length === 0);
+            document.getElementById('total').innerText = total;
+            document.getElementById('cart-items').innerHTML = cart.map(i=>`<div>${i.name} x ${i.qty}</div>`).join('');
+        }
+
+        async function confirmOrder() {
+            const shop = document.getElementById('shop-name').value;
+            if(!shop) return alert("দোকানের নাম দিন");
+            const total = cart.reduce((s,i)=>s+(i.price*i.qty),0);
+            const { data: order } = await supabase.from('orders').insert([{ shop_name: shop, total_amount: total, sr_id: currentUser.id }]).select();
+            for(let item of cart) {
+                await supabase.from('order_items').insert([{ order_id: order[0].id, product_name: item.name, quantity: item.qty, price: item.price }]);
+                await supabase.rpc('decrement_stock', { prod_id: item.id, qty: item.qty });
+            }
+            alert("সফল!"); cart = []; updateCart(); showTab('order');
+        }
+
+        async function logout() { await supabase.auth.signOut(); location.reload(); }
+
+        window.onload = checkSession;
     </script>
 </body>
 </html>
