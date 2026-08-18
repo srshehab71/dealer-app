@@ -113,14 +113,31 @@
         const ADMIN_EMAILS = ["admin@gmail.com"]; // এখানে অ্যাডমিনের ইমেইল দিয়ে দিন
 
         async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-            
-            if (error) return alert("লগইন ব্যর্থ: " + error.message);
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-pass').value;
+    
+    // লোডিং মেসেজ দেখানোর জন্য
+    const btn = document.querySelector('button');
+    btn.innerText = "লোডিং...";
+    btn.disabled = true;
+
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        
+        if (error) {
+            alert("লগইন ভুল: " + error.message); // এরর মেসেজ দেখাবে
+            btn.innerText = "প্রবেশ করুন";
+            btn.disabled = false;
+        } else {
             currentUser = data.user;
             setupUI();
         }
+    } catch (err) {
+        alert("কানেকশন সমস্যা: " + err.message);
+        btn.innerText = "প্রবেশ করুন";
+        btn.disabled = false;
+    }
+}
 
         function setupUI() {
             document.getElementById('auth-screen').classList.add('hidden');
