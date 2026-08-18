@@ -9,10 +9,10 @@ define("APP_URL", $protocol . $host . $baseDir);
 $_app_stage = "Live";
 
 // Database PHPNuxBill
-$db_host	    = "localhost";
-$db_user        = "root";
-$db_pass    	= "Srb@12345";
-$db_name	    = "srb";
+$db_host	    = "db.dvdpifjwtwwpylafzywt.supabase.co:5432";
+$db_user        = "postgres";
+$db_pass    	= "Srshehab@1234";
+$db_name	    = "billpay";
 
 // Database Radius
 $radius_host	    = "localhost";
